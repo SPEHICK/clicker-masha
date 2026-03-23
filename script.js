@@ -40,6 +40,11 @@ clickButton.addEventListener('click', () => {
     updateDisplay();
     animateClick();
     autoSave();
+    
+    // Отправляем в топ при каждом клике
+    if (window.TelegramGame) {
+        window.TelegramGame.submitScore(score);
+    }
 });
 
 upgradeButtons.forEach(button => {
@@ -93,14 +98,6 @@ function autoSave() {
     if (now - lastSaveTime > 3000) { // Сохраняем каждые 3 секунды
         lastSaveTime = now;
         saveGameData();
-    }
-    
-    // Отправляем счет в таблицу лидеров каждые 50 очков
-    if (score - lastScoreSubmit >= 50) {
-        lastScoreSubmit = score;
-        if (window.TelegramGame) {
-            window.TelegramGame.submitScore(score);
-        }
     }
 }
 
@@ -234,6 +231,13 @@ async function loadLeaderboard() {
     }
 }
 
+// Защита от XSS - экранирование HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Отображение таблицы лидеров
 function displayLeaderboard(leaders) {
     const leaderboardElement = document.getElementById('leaderboard');
@@ -263,11 +267,15 @@ function displayLeaderboard(leaders) {
         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
         const devBadge = isDeveloper ? ' 👑' : '';
         
+        // Защита от XSS - экранируем имя пользователя
+        const safeName = escapeHtml(leader.userName);
+        const safeScore = parseInt(leader.score) || 0;
+        
         html += `
             <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''} ${isDeveloper ? 'developer' : ''}">
                 <div class="rank">${medal || (index + 1)}</div>
-                <div class="player-name">${leader.userName}${devBadge}</div>
-                <div class="player-score">${leader.score.toLocaleString()}</div>
+                <div class="player-name">${safeName}${devBadge}</div>
+                <div class="player-score">${safeScore.toLocaleString()}</div>
             </div>
         `;
     });
@@ -435,11 +443,26 @@ updateDisplay = function() {
 function updateProfile() {
     const userName = window.TelegramGame ? window.TelegramGame.getUserName() : 'Игрок';
     const userId = window.TelegramGame ? window.TelegramGame.getUserId() : 'test';
+    const userPhoto = window.TelegramGame ? window.TelegramGame.getUserPhoto() : null;
     const isDev = window.TelegramGame ? window.TelegramGame.isDeveloper() : false;
     
+    // Защита от XSS
     document.getElementById('profileName').textContent = userName;
     document.getElementById('profileId').textContent = `ID: ${userId}`;
-    document.getElementById('profileAvatar').src = currentSkin;
+    
+    // Устанавливаем аватарку пользователя или дефолтную
+    const avatarImg = document.getElementById('profileAvatar');
+    if (userPhoto) {
+        avatarImg.src = userPhoto;
+        avatarImg.onerror = function() {
+            // Если фото не загрузилось, показываем дефолтную иконку
+            this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23e94560"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="white">👤</text></svg>';
+        };
+    } else {
+        // Дефолтная иконка пользователя
+        avatarImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23e94560"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="white">👤</text></svg>';
+    }
+    
     document.getElementById('profileScore').textContent = score.toLocaleString();
     document.getElementById('profileClickPower').textContent = clickPower;
     document.getElementById('profileSkins').textContent = ownedSkins.length;

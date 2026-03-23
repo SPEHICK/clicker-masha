@@ -2,6 +2,7 @@
 let tg = window.Telegram?.WebApp;
 let userId = null;
 let userName = 'Игрок';
+let userPhoto = null;
 let userIp = null;
 
 // ID разработчика в Telegram
@@ -44,6 +45,9 @@ async function initTelegram() {
             } else {
                 userName = 'Игрок';
             }
+            
+            // Получаем фото профиля
+            userPhoto = tg.initDataUnsafe.user.photo_url || null;
             
             // Проверка на разработчика по Telegram ID
             if (userId.toString() === DEVELOPER_TELEGRAM_ID) {
@@ -233,9 +237,15 @@ async function submitScore(score) {
     }
 }
 
-// Локальное сохранение счета
+// Локальное сохранение счета с защитой от перезаписи
 function saveScoreLocally(score) {
     if (!userId) return;
+    
+    // Валидация данных
+    if (typeof score !== 'number' || score < 0 || !isFinite(score)) {
+        console.error('Некорректный счет:', score);
+        return;
+    }
     
     const scores = JSON.parse(localStorage.getItem('pendingScores') || '[]');
     
@@ -245,17 +255,23 @@ function saveScoreLocally(score) {
     const newScore = {
         userId: userId,
         userName: userName,
-        score: score,
+        score: Math.floor(score), // Округляем для защиты
         timestamp: Date.now()
     };
     
     if (existingIndex !== -1) {
-        // Обновляем только если новый счет больше
+        // Обновляем только если новый счет больше (защита от перезаписи)
         if (score > scores[existingIndex].score) {
             scores[existingIndex] = newScore;
         }
     } else {
         scores.push(newScore);
+    }
+    
+    // Ограничиваем размер хранилища
+    if (scores.length > 100) {
+        scores.sort((a, b) => b.score - a.score);
+        scores.splice(100);
     }
     
     localStorage.setItem('pendingScores', JSON.stringify(scores));
@@ -283,15 +299,6 @@ async function getLeaderboard() {
 function getLocalLeaderboard() {
     const scores = JSON.parse(localStorage.getItem('pendingScores') || '[]');
     
-    // Добавляем разработчика в топ только если это разработчик
-    const isDev = userId && userId.toString() === DEVELOPER_TELEGRAM_ID;
-    const devEntry = isDev ? {
-        userId: userId,
-        userName: userName,
-        score: 999999,
-        timestamp: Date.now()
-    } : null;
-    
     // Убираем дубликаты по userId
     const uniqueScores = {};
     scores.forEach(score => {
@@ -310,11 +317,7 @@ function getLocalLeaderboard() {
         };
     }
     
-    const allScores = devEntry 
-        ? [devEntry, ...Object.values(uniqueScores).filter(s => s.userId !== userId)]
-        : Object.values(uniqueScores);
-    
-    return allScores
+    return Object.values(uniqueScores)
         .sort((a, b) => b.score - a.score)
         .slice(0, 10);
 }
@@ -328,5 +331,6 @@ window.TelegramGame = {
     getLeaderboard,
     getUserId: () => userId,
     getUserName: () => userName,
+    getUserPhoto: () => userPhoto,
     isDeveloper: () => userId && userId.toString() === DEVELOPER_TELEGRAM_ID
 };

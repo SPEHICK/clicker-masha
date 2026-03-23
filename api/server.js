@@ -12,8 +12,8 @@ app.use(express.json());
 // Хранилище в памяти (для продакшена используйте базу данных)
 let leaderboard = [];
 
-// Секретный ключ бота (замените на свой токен)
-const BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE';
+// Секретный ключ бота
+const BOT_TOKEN = '8713827415:AAGLH4O_Lut5mkNazztQQTk__zL1SSZ6O-U';
 
 // Валидация данных Telegram
 function validateTelegramData(initData) {
