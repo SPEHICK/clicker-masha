@@ -2,145 +2,102 @@
 
 Браузерная игра-кликер с интеграцией в Telegram и системой таблицы лидеров.
 
-## Возможности
+## 🎮 Возможности
 
-- 🎮 Простой геймплей с кликами
-- 💾 Автоматическое сохранение прогресса в Telegram Cloud Storage
-- 🏆 Таблица лидеров между игроками
-- 📱 Адаптивный дизайн для мобильных устройств
-- 🌙 Темная тема оформления
+- Простой геймплей с кликами
+- Автоматическое сохранение прогресса в Telegram Cloud Storage
+- Таблица лидеров между игроками
+- 6 уникальных скинов с разными ценами
+- Система достижений
+- Динамическая смена цветов интерфейса
+- Салют при покупке скинов
+- Адаптивный дизайн для мобильных устройств
+- Темная тема с эффектами жидкого стекла
 
-## Установка и запуск
+## 🚀 Быстрый старт
 
-### 1. Загрузка на GitHub Pages
+### Загрузка на GitHub Pages
 
-1. Создайте новый репозиторий на GitHub
+1. Создайте репозиторий на GitHub
 2. Загрузите все файлы проекта
-3. Перейдите в Settings → Pages
-4. Выберите ветку `main` и папку `/ (root)`
-5. Сохраните настройки
+3. Включите GitHub Pages в Settings
+4. Получите ссылку: `https://ваш-username.github.io/masha-clicker/`
 
-Ваша игра будет доступна по адресу: `https://ваш-username.github.io/название-репозитория/`
+**Подробная инструкция:** см. файл `GITHUB_DEPLOY.md`
 
-### 2. Создание Telegram бота
+### Создание Telegram бота
 
-1. Откройте [@BotFather](https://t.me/BotFather) в Telegram
-2. Отправьте команду `/newbot`
-3. Следуйте инструкциям для создания бота
-4. Получите токен бота
+1. Откройте [@BotFather](https://t.me/BotFather)
+2. `/newbot` - создайте бота
+3. `/newapp` - добавьте Web App
+4. Вставьте URL вашего GitHub Pages
+5. Готово!
 
-### 3. Настройка Web App
-
-1. Отправьте команду `/newapp` в @BotFather
-2. Выберите вашего бота
-3. Введите название приложения: `Masha Clicker`
-4. Введите описание
-5. Загрузите изображение 640x360 (можно использовать скриншот игры)
-6. Отправьте URL вашего GitHub Pages: `https://ваш-username.github.io/название-репозитория/`
-7. Загрузите GIF демонстрацию (опционально)
-
-### 4. Обновление URL в коде
-
-Откройте файл `telegram.js` и замените `your-github-pages-url.github.io` на ваш реальный URL:
-
-```javascript
-const response = await fetch('https://ваш-username.github.io/название-репозитория/api/submit-score', {
-```
-
-## Структура проекта
+## 📁 Структура проекта
 
 ```
 masha-clicker/
-├── index.html          # Основная HTML страница
-├── style.css           # Стили оформления
+├── index.html          # Основная страница
+├── style.css           # Стили
 ├── script.js           # Логика игры
 ├── telegram.js         # Интеграция с Telegram
-├── 1.bmp              # Изображение для кнопки клика
+├── fluid.js            # WebGL фоновая анимация
+├── theme-helper.js     # Смена цветов темы
+├── 1.bmp              # Базовый скин
+├── 2.jpg              # Премиум скин
+├── 3.jpg              # Золотой скин
+├── 4.jpg              # Алмазный скин
+├── 5.jpg              # Легендарный скин
+├── 6.png              # Мифический скин
 └── README.md          # Документация
 ```
 
-## Безопасность
+## 🎨 Скины
 
-### Защита от читов
+| Скин | Цена | Цвет темы |
+|------|------|-----------|
+| Маша | 0 | Красный |
+| Маша Премиум | 1000 | Фиолетовый |
+| Маша Золотая | 5000 | Оранжевый |
+| Маша Алмазная | 15000 | Синий |
+| Маша Легендарная | 50000 | Красный |
+| Маша Мифическая | 150000 | Темно-фиолетовый |
 
-Текущая реализация использует клиентское хранилище. Для защиты от читов рекомендуется:
+## 🔒 Безопасность
 
-1. **Серверная валидация**: Создайте backend API для проверки счета
-2. **Хеширование данных**: Добавьте HMAC подпись к сохраняемым данным
-3. **Rate limiting**: Ограничьте частоту отправки счета
-4. **Telegram initData**: Используйте `tg.initData` для аутентификации
+- Верификация через Telegram Web App
+- Специальный доступ для разработчика по IP
+- Сохранение данных в Telegram Cloud Storage
+- Защита от несанкционированного доступа
 
-### Пример защиты (добавьте в telegram.js):
+## 🛠️ Технологии
 
-```javascript
-// Генерация подписи для защиты данных
-function generateSignature(data, secret) {
-    const message = JSON.stringify(data);
-    return CryptoJS.HmacSHA256(message, secret).toString();
-}
+- HTML5
+- CSS3 (Glassmorphism, CSS Variables)
+- JavaScript (ES6+)
+- WebGL (фоновая анимация)
+- Telegram Web App API
+- Telegram Cloud Storage
 
-// Проверка подписи
-function verifySignature(data, signature, secret) {
-    const expectedSignature = generateSignature(data, secret);
-    return signature === expectedSignature;
-}
-```
+## 📱 Совместимость
 
-## API для таблицы лидеров
+- ✅ Chrome/Edge
+- ✅ Firefox
+- ✅ Safari
+- ✅ Мобильные браузеры
+- ✅ Telegram Web App (iOS/Android)
 
-Для полноценной работы таблицы лидеров создайте backend API:
+## 👨‍💻 Разработчик
 
-### Endpoints:
+Создано @shakall1488
 
-- `POST /api/submit-score` - Отправка счета
-- `GET /api/leaderboard` - Получение топ-10 игроков
-
-### Пример на Node.js + Express:
-
-```javascript
-app.post('/api/submit-score', async (req, res) => {
-    const { userId, userName, score, timestamp } = req.body;
-    
-    // Валидация Telegram данных
-    if (!validateTelegramData(req.headers['x-telegram-init-data'])) {
-        return res.status(403).json({ error: 'Invalid data' });
-    }
-    
-    // Сохранение в базу данных
-    await db.upsertScore(userId, userName, score, timestamp);
-    
-    res.json({ success: true });
-});
-
-app.get('/api/leaderboard', async (req, res) => {
-    const leaders = await db.getTopScores(10);
-    res.json(leaders);
-});
-```
-
-## Локальное тестирование
-
-Для тестирования без Telegram:
-
-1. Откройте `index.html` в браузере
-2. Игра будет работать с localStorage вместо Telegram Cloud Storage
-3. Таблица лидеров будет локальной
-
-## Запуск в Telegram
-
-1. Откройте вашего бота в Telegram
-2. Нажмите на кнопку меню (☰) рядом с полем ввода
-3. Выберите "Masha Clicker"
-4. Игра откроется в Web App
-
-## Дополнительные возможности
-
-- Добавьте больше улучшений и достижений
-- Реализуйте систему ежедневных наград
-- Добавьте звуковые эффекты
-- Создайте систему рефералов
-- Интегрируйте Telegram Stars для покупок
-
-## Лицензия
+## 📄 Лицензия
 
 MIT License - используйте свободно для своих проектов.
+
+---
+
+**Играть онлайн:** [Ваша ссылка после деплоя]
+
+**Telegram бот:** [Ваш бот после создания]
+

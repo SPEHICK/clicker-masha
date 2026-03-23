@@ -23,8 +23,13 @@ const upgradeButtons = document.querySelectorAll('.upgrade-button');
 // Инициализация при загрузке
 window.addEventListener('DOMContentLoaded', async () => {
     if (window.TelegramGame) {
-        window.TelegramGame.init();
+        await window.TelegramGame.init();
         await loadGameData();
+        
+        // Автоматически добавляем игрока в топ при первом запуске
+        if (score === 0) {
+            await window.TelegramGame.submitScore(0);
+        }
     }
     initTabs();
     renderSkins();
@@ -90,8 +95,8 @@ function autoSave() {
         saveGameData();
     }
     
-    // Отправляем счет в таблицу лидеров каждые 100 очков
-    if (score - lastScoreSubmit >= 100) {
+    // Отправляем счет в таблицу лидеров каждые 50 очков
+    if (score - lastScoreSubmit >= 50) {
         lastScoreSubmit = score;
         if (window.TelegramGame) {
             window.TelegramGame.submitScore(score);
@@ -210,8 +215,21 @@ async function loadLeaderboard() {
     
     try {
         const leaders = await window.TelegramGame.getLeaderboard();
-        displayLeaderboard(leaders);
+        
+        // Если список пустой, добавляем текущего игрока
+        if (!leaders || leaders.length === 0) {
+            const currentUser = {
+                userId: window.TelegramGame.getUserId(),
+                userName: window.TelegramGame.getUserName(),
+                score: score,
+                timestamp: Date.now()
+            };
+            displayLeaderboard([currentUser]);
+        } else {
+            displayLeaderboard(leaders);
+        }
     } catch (error) {
+        console.error('Ошибка загрузки топа:', error);
         leaderboardElement.innerHTML = '<div class="error">Ошибка загрузки</div>';
     }
 }

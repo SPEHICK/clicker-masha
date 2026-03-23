@@ -4,8 +4,8 @@ let userId = null;
 let userName = 'Игрок';
 let userIp = null;
 
-// Разрешенный IP разработчика
-const DEVELOPER_IP = '95.152.63.204';
+// ID разработчика в Telegram
+const DEVELOPER_TELEGRAM_ID = 'YOUR_TELEGRAM_ID'; // Замените на ваш реальный Telegram ID
 const DEVELOPER_USERNAME = '@shakall1488';
 
 // Получение IP пользователя
@@ -25,14 +25,6 @@ async function initTelegram() {
     // Получаем IP пользователя
     userIp = await getUserIP();
     
-    // Проверка для разработчика по IP
-    if (userIp === DEVELOPER_IP) {
-        userId = 'developer_shakall';
-        userName = DEVELOPER_USERNAME + ' (Разработчик)';
-        console.log('Добро пожаловать, разработчик!');
-        return;
-    }
-    
     if (tg) {
         tg.ready();
         tg.expand();
@@ -40,11 +32,28 @@ async function initTelegram() {
         // Получаем данные пользователя из Telegram
         if (tg.initDataUnsafe?.user) {
             userId = tg.initDataUnsafe.user.id;
-            userName = tg.initDataUnsafe.user.username 
-                ? '@' + tg.initDataUnsafe.user.username 
-                : tg.initDataUnsafe.user.first_name || 'Игрок';
+            
+            // Формируем имя пользователя
+            if (tg.initDataUnsafe.user.username) {
+                userName = '@' + tg.initDataUnsafe.user.username;
+            } else if (tg.initDataUnsafe.user.first_name) {
+                userName = tg.initDataUnsafe.user.first_name;
+                if (tg.initDataUnsafe.user.last_name) {
+                    userName += ' ' + tg.initDataUnsafe.user.last_name;
+                }
+            } else {
+                userName = 'Игрок';
+            }
+            
+            // Проверка на разработчика по Telegram ID
+            if (userId.toString() === DEVELOPER_TELEGRAM_ID) {
+                userName = DEVELOPER_USERNAME + ' (Разработчик)';
+                console.log('Добро пожаловать, разработчик!');
+            }
+            
+            console.log('Пользователь:', userName, 'ID:', userId);
         } else {
-            // Если нет данных Telegram и не разработчик - блокируем
+            // Если нет данных Telegram - блокируем
             showAccessDenied();
             return;
         }
@@ -52,11 +61,9 @@ async function initTelegram() {
         // Применяем тему Telegram
         document.body.style.backgroundColor = tg.backgroundColor || '#0a0a0a';
     } else {
-        // Если не в Telegram и не разработчик - блокируем
-        if (userIp !== DEVELOPER_IP) {
-            showAccessDenied();
-            return;
-        }
+        // Если не в Telegram - блокируем
+        showAccessDenied();
+        return;
     }
 }
 
@@ -216,6 +223,9 @@ async function submitScore(score) {
         if (!response.ok) {
             throw new Error('Ошибка отправки счета');
         }
+        
+        // Сохраняем локально в любом случае
+        saveScoreLocally(score);
     } catch (error) {
         console.error('Ошибка отправки счета:', error);
         // Сохраняем локально для последующей отправки
@@ -273,13 +283,14 @@ async function getLeaderboard() {
 function getLocalLeaderboard() {
     const scores = JSON.parse(localStorage.getItem('pendingScores') || '[]');
     
-    // Добавляем разработчика в топ
-    const devEntry = {
-        userId: 'developer_shakall',
-        userName: '@shakall1488 (Разработчик)',
+    // Добавляем разработчика в топ только если это разработчик
+    const isDev = userId && userId.toString() === DEVELOPER_TELEGRAM_ID;
+    const devEntry = isDev ? {
+        userId: userId,
+        userName: userName,
         score: 999999,
         timestamp: Date.now()
-    };
+    } : null;
     
     // Убираем дубликаты по userId
     const uniqueScores = {};
@@ -289,7 +300,19 @@ function getLocalLeaderboard() {
         }
     });
     
-    const allScores = [devEntry, ...Object.values(uniqueScores)];
+    // Добавляем текущего пользователя если его нет
+    if (userId && !uniqueScores[userId]) {
+        uniqueScores[userId] = {
+            userId: userId,
+            userName: userName,
+            score: 0,
+            timestamp: Date.now()
+        };
+    }
+    
+    const allScores = devEntry 
+        ? [devEntry, ...Object.values(uniqueScores).filter(s => s.userId !== userId)]
+        : Object.values(uniqueScores);
     
     return allScores
         .sort((a, b) => b.score - a.score)
@@ -305,5 +328,5 @@ window.TelegramGame = {
     getLeaderboard,
     getUserId: () => userId,
     getUserName: () => userName,
-    isDeveloper: () => userIp === DEVELOPER_IP
+    isDeveloper: () => userId && userId.toString() === DEVELOPER_TELEGRAM_ID
 };
