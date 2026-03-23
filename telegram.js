@@ -203,36 +203,68 @@ async function loadFromCloud() {
     }
 }
 
-// Отправка счета на сервер для таблицы лидеров
+// Отправка счета в общую таблицу лидеров через Cloud Storage
 async function submitScore(score) {
-    if (!userId) return;
+    if (!userId || !tg || !tg.CloudStorage) return;
     
     try {
-        // Замените на ваш URL после деплоя на Vercel
-        const API_URL = 'https://your-vercel-app.vercel.app';
-        
-        const response = await fetch(`${API_URL}/api/submit-score`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                userId: userId,
-                userName: userName,
-                score: score,
-                timestamp: Date.now()
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Ошибка отправки счета');
+        // Валидация данных
+        if (typeof score !== 'number' || score < 0 || !isFinite(score)) {
+            console.error('Некорректный счет:', score);
+            return;
         }
         
-        // Сохраняем локально в любом случае
+        // Получаем текущую таблицу лидеров
+        const leaderboardData = await new Promise((resolve, reject) => {
+            tg.CloudStorage.getItem('global_leaderboard', (error, value) => {
+                if (error) reject(error);
+                else resolve(value);
+            });
+        });
+        
+        let leaderboard = [];
+        if (leaderboardData) {
+            try {
+                leaderboard = JSON.parse(leaderboardData);
+            } catch (e) {
+                leaderboard = [];
+            }
+        }
+        
+        // Обновляем или добавляем игрока
+        const existingIndex = leaderboard.findIndex(entry => entry.userId === userId);
+        const newEntry = {
+            userId: userId,
+            userName: userName,
+            score: Math.floor(score),
+            timestamp: Date.now()
+        };
+        
+        if (existingIndex !== -1) {
+            // Обновляем только если новый счет больше
+            if (score > leaderboard[existingIndex].score) {
+                leaderboard[existingIndex] = newEntry;
+            }
+        } else {
+            leaderboard.push(newEntry);
+        }
+        
+        // Сортируем и оставляем топ-100
+        leaderboard.sort((a, b) => b.score - a.score);
+        leaderboard = leaderboard.slice(0, 100);
+        
+        // Сохраняем обратно
+        await new Promise((resolve, reject) => {
+            tg.CloudStorage.setItem('global_leaderboard', JSON.stringify(leaderboard), (error) => {
+                if (error) reject(error);
+                else resolve();
+            });
+        });
+        
+        // Также сохраняем локально как резерв
         saveScoreLocally(score);
     } catch (error) {
         console.error('Ошибка отправки счета:', error);
-        // Сохраняем локально для последующей отправки
         saveScoreLocally(score);
     }
 }
@@ -277,20 +309,58 @@ function saveScoreLocally(score) {
     localStorage.setItem('pendingScores', JSON.stringify(scores));
 }
 
-// Получение таблицы лидеров
+// Получение таблицы лидеров из Cloud Storage
 async function getLeaderboard() {
+    if (!tg || !tg.CloudStorage) {
+        return getLocalLeaderboard();
+    }
+    
     try {
-        // Замените на ваш URL после деплоя на Vercel
-        const API_URL = 'https://your-vercel-app.vercel.app';
+        const leaderboardData = await new Promise((resolve, reject) => {
+            tg.CloudStorage.getItem('global_leaderboard', (error, value) => {
+                if (error) reject(error);
+                else resolve(value);
+            });
+        });
         
-        const response = await fetch(`${API_URL}/api/leaderboard`);
-        if (!response.ok) {
-            throw new Error('Ошибка загрузки таблицы лидеров');
+        if (leaderboardData) {
+            const leaderboard = JSON.parse(leaderboardData);
+            
+            // Убираем дубликаты по userId
+            const uniqueScores = {};
+            leaderboard.forEach(score => {
+                if (!uniqueScores[score.userId] || uniqueScores[score.userId].score < score.score) {
+                    uniqueScores[score.userId] = score;
+                }
+            });
+            
+            return Object.values(uniqueScores)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 10);
         }
-        return await response.json();
+        
+        // Если пусто, добавляем текущего пользователя
+        if (userId) {
+            const initialEntry = {
+                userId: userId,
+                userName: userName,
+                score: 0,
+                timestamp: Date.now()
+            };
+            
+            await new Promise((resolve, reject) => {
+                tg.CloudStorage.setItem('global_leaderboard', JSON.stringify([initialEntry]), (error) => {
+                    if (error) reject(error);
+                    else resolve();
+                });
+            });
+            
+            return [initialEntry];
+        }
+        
+        return [];
     } catch (error) {
         console.error('Ошибка загрузки таблицы лидеров:', error);
-        // Возвращаем локальные данные
         return getLocalLeaderboard();
     }
 }

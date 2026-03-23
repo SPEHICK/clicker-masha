@@ -20,6 +20,10 @@ const perClickElement = document.getElementById('perClick');
 const clickButton = document.getElementById('clickButton');
 const upgradeButtons = document.querySelectorAll('.upgrade-button');
 
+// Звук клика
+const clickSound = new Audio('1.ogg');
+clickSound.volume = 0.3;
+
 // Инициализация при загрузке
 window.addEventListener('DOMContentLoaded', async () => {
     if (window.TelegramGame) {
@@ -40,6 +44,10 @@ clickButton.addEventListener('click', () => {
     updateDisplay();
     animateClick();
     autoSave();
+    
+    // Воспроизводим звук
+    clickSound.currentTime = 0;
+    clickSound.play().catch(e => console.log('Звук отключен'));
     
     // Отправляем в топ при каждом клике
     if (window.TelegramGame) {
