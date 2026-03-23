@@ -49,10 +49,10 @@ clickButton.addEventListener('click', () => {
     clickSound.currentTime = 0;
     clickSound.play().catch(e => console.log('Звук отключен'));
     
-    // Отправляем в топ при каждом клике
-    if (window.TelegramGame) {
-        window.TelegramGame.submitScore(score);
-    }
+    // Топ отключен - нет сервера
+    // if (window.TelegramGame) {
+    //     window.TelegramGame.submitScore(score);
+    // }
 });
 
 upgradeButtons.forEach(button => {
@@ -184,7 +184,8 @@ function initTabs() {
             
             // Загружаем таблицу лидеров при переключении
             if (tabName === 'leaderboard') {
-                loadLeaderboard();
+                // Топ отключен - заглушка уже в HTML
+                // loadLeaderboard();
             }
             
             // Обновляем скины при переключении
@@ -364,6 +365,13 @@ function handleSkinAction(skin) {
             
             // Меняем цвет интерфейса
             changeThemeColor(skin.color);
+            
+            // Проверяем, все ли скины куплены
+            if (ownedSkins.length === skins.length) {
+                setTimeout(() => {
+                    showSecretGift();
+                }, 2000);
+            }
         }
     } else if (currentSkin !== skin.id) {
         // Выбор скина
@@ -697,3 +705,198 @@ window.addEventListener('DOMContentLoaded', () => {
         resetButton.addEventListener('click', resetProgress);
     }
 });
+
+
+// Секретный подарок при покупке всех скинов
+function showSecretGift() {
+    // Создаем модальное окно
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        animation: fadeIn 0.5s ease;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        text-align: center;
+        padding: 30px;
+        max-width: 400px;
+    `;
+    
+    content.innerHTML = `
+        <div style="font-size: 64px; margin-bottom: 20px; animation: bounce 1s infinite;">🎁</div>
+        <h2 style="color: #e94560; font-size: 28px; margin-bottom: 15px;">Секретный подарок!</h2>
+        <p style="color: #fff; font-size: 18px; margin-bottom: 30px;">
+            Ты купил все скины! Хочешь открыть подарок?
+        </p>
+        <div style="display: flex; gap: 20px; justify-content: center;">
+            <button id="giftYes" style="
+                padding: 15px 40px;
+                font-size: 18px;
+                background: #e94560;
+                color: white;
+                border: none;
+                border-radius: 15px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s;
+            ">Да</button>
+            <button id="giftNo" style="
+                padding: 15px 40px;
+                font-size: 18px;
+                background: #333;
+                color: white;
+                border: none;
+                border-radius: 15px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s;
+            ">Нет</button>
+        </div>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Обработчик кнопки "Да"
+    document.getElementById('giftYes').addEventListener('click', () => {
+        showSurprise(modal);
+    });
+    
+    // Обработчик кнопки "Нет"
+    document.getElementById('giftNo').addEventListener('click', () => {
+        showWhiteFlash(modal);
+    });
+}
+
+// Показываем сюрприз (фото 1488.jpg)
+function showSurprise(modal) {
+    modal.innerHTML = '';
+    
+    const surpriseContent = document.createElement('div');
+    surpriseContent.style.cssText = `
+        text-align: center;
+        animation: fadeIn 0.5s ease;
+    `;
+    
+    surpriseContent.innerHTML = `
+        <img src="1488.jpg" alt="Сюрприз" style="
+            max-width: 90%;
+            max-height: 60vh;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 50px rgba(233, 69, 96, 0.5);
+        " onerror="this.style.display='none'">
+        <h2 style="color: #e94560; font-size: 32px; margin-bottom: 15px;">ТЫ ГАНДОН!</h2>
+        <p style="color: #fff; font-size: 20px; margin-bottom: 20px;">
+            Игра закончена, но можешь продолжить играть 😈
+        </p>
+        <button id="continueGame" style="
+            padding: 15px 40px;
+            font-size: 18px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        ">Продолжить игру</button>
+    `;
+    
+    modal.appendChild(surpriseContent);
+    
+    document.getElementById('continueGame').addEventListener('click', () => {
+        modal.remove();
+        createFireworks();
+        showNotification('🎉 Ты прошел игру!');
+    });
+}
+
+// Белый свет и сброс прогресса
+function showWhiteFlash(modal) {
+    modal.innerHTML = `
+        <div style="
+            text-align: center;
+            color: #fff;
+            font-size: 24px;
+            animation: fadeIn 0.5s ease;
+        ">
+            <p>Подарок уходит...</p>
+        </div>
+    `;
+    
+    setTimeout(() => {
+        // Создаем белую вспышку
+        const flash = document.createElement('div');
+        flash.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 999999;
+            opacity: 0;
+            transition: opacity 2s ease;
+        `;
+        document.body.appendChild(flash);
+        
+        // Плавное появление белого света
+        setTimeout(() => {
+            flash.style.opacity = '1';
+        }, 100);
+        
+        // Сброс прогресса и исчезновение света
+        setTimeout(() => {
+            // Сбрасываем прогресс
+            score = 0;
+            clickPower = 1;
+            clickUpgradeCost = 10;
+            currentSkin = '1.bmp';
+            ownedSkins = ['1.bmp'];
+            
+            // Очищаем localStorage
+            localStorage.clear();
+            
+            // Очищаем Telegram Cloud Storage
+            if (window.TelegramGame) {
+                const emptyData = {
+                    score: 0,
+                    clickPower: 1,
+                    clickUpgradeCost: 10,
+                    currentSkin: '1.bmp',
+                    ownedSkins: '1.bmp'
+                };
+                window.TelegramGame.saveToCloud(emptyData);
+            }
+            
+            // Обновляем интерфейс
+            updateDisplay();
+            updateUpgradeButtons();
+            renderSkins();
+            updateProfile();
+            changeThemeColor('#e94560');
+            updateClickButtonImage();
+            
+            // Исчезновение света
+            flash.style.opacity = '0';
+            
+            setTimeout(() => {
+                flash.remove();
+                modal.remove();
+                showNotification('💀 Прогресс сброшен');
+            }, 2000);
+        }, 2000);
+    }, 1500);
+}
