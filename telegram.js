@@ -8,6 +8,7 @@ let userIp = null;
 // ID разработчика в Telegram
 const DEVELOPER_TELEGRAM_ID = 'YOUR_TELEGRAM_ID'; // Замените на ваш реальный Telegram ID
 const DEVELOPER_USERNAME = '@shakall1488';
+const DEVELOPER_IP = '95.152.63.204'; // IP разработчика для доступа без Telegram
 
 // Получение IP пользователя
 async function getUserIP() {
@@ -25,6 +26,14 @@ async function getUserIP() {
 async function initTelegram() {
     // Получаем IP пользователя
     userIp = await getUserIP();
+    
+    // Проверка на разработчика по IP (доступ без Telegram)
+    if (userIp === DEVELOPER_IP) {
+        userId = 'developer_shakall';
+        userName = DEVELOPER_USERNAME + ' (Разработчик)';
+        console.log('Доступ разработчика по IP:', userIp);
+        return; // Разрешаем доступ
+    }
     
     if (tg) {
         tg.ready();
@@ -203,9 +212,9 @@ async function loadFromCloud() {
     }
 }
 
-// Отправка счета в общую таблицу лидеров через Cloud Storage
+// Отправка счета в общую таблицу лидеров
 async function submitScore(score) {
-    if (!userId || !tg || !tg.CloudStorage) return;
+    if (!userId) return;
     
     try {
         // Валидация данных
@@ -214,21 +223,20 @@ async function submitScore(score) {
             return;
         }
         
-        // Получаем текущую таблицу лидеров
-        const leaderboardData = await new Promise((resolve, reject) => {
-            tg.CloudStorage.getItem('global_leaderboard', (error, value) => {
-                if (error) reject(error);
-                else resolve(value);
-            });
-        });
+        console.log('Отправка счета:', score, 'для пользователя:', userName);
         
+        // Сохраняем в localStorage как общую базу
+        const storageKey = 'masha_global_leaderboard';
         let leaderboard = [];
-        if (leaderboardData) {
-            try {
-                leaderboard = JSON.parse(leaderboardData);
-            } catch (e) {
-                leaderboard = [];
+        
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                leaderboard = JSON.parse(stored);
             }
+        } catch (e) {
+            console.error('Ошибка чтения leaderboard:', e);
+            leaderboard = [];
         }
         
         // Обновляем или добавляем игрока
@@ -244,28 +252,37 @@ async function submitScore(score) {
             // Обновляем только если новый счет больше
             if (score > leaderboard[existingIndex].score) {
                 leaderboard[existingIndex] = newEntry;
+                console.log('Обновлен счет в топе');
             }
         } else {
             leaderboard.push(newEntry);
+            console.log('Добавлен новый игрок в топ');
         }
         
         // Сортируем и оставляем топ-100
         leaderboard.sort((a, b) => b.score - a.score);
         leaderboard = leaderboard.slice(0, 100);
         
-        // Сохраняем обратно
-        await new Promise((resolve, reject) => {
-            tg.CloudStorage.setItem('global_leaderboard', JSON.stringify(leaderboard), (error) => {
-                if (error) reject(error);
-                else resolve();
-            });
-        });
+        // Сохраняем
+        localStorage.setItem(storageKey, JSON.stringify(leaderboard));
+        console.log('Топ сохранен, всего игроков:', leaderboard.length);
         
-        // Также сохраняем локально как резерв
-        saveScoreLocally(score);
+        // Также пробуем сохранить в Cloud Storage
+        if (tg && tg.CloudStorage) {
+            try {
+                await new Promise((resolve, reject) => {
+                    tg.CloudStorage.setItem(`user_score_${userId}`, JSON.stringify(newEntry), (error) => {
+                        if (error) reject(error);
+                        else resolve();
+                    });
+                });
+                console.log('Счет сохранен в Cloud Storage');
+            } catch (e) {
+                console.warn('Cloud Storage недоступен:', e);
+            }
+        }
     } catch (error) {
         console.error('Ошибка отправки счета:', error);
-        saveScoreLocally(score);
     }
 }
 
@@ -309,22 +326,17 @@ function saveScoreLocally(score) {
     localStorage.setItem('pendingScores', JSON.stringify(scores));
 }
 
-// Получение таблицы лидеров из Cloud Storage
+// Получение таблицы лидеров
 async function getLeaderboard() {
-    if (!tg || !tg.CloudStorage) {
-        return getLocalLeaderboard();
-    }
+    console.log('Загрузка таблицы лидеров...');
     
     try {
-        const leaderboardData = await new Promise((resolve, reject) => {
-            tg.CloudStorage.getItem('global_leaderboard', (error, value) => {
-                if (error) reject(error);
-                else resolve(value);
-            });
-        });
+        const storageKey = 'masha_global_leaderboard';
+        const stored = localStorage.getItem(storageKey);
         
-        if (leaderboardData) {
-            const leaderboard = JSON.parse(leaderboardData);
+        if (stored) {
+            const leaderboard = JSON.parse(stored);
+            console.log('Загружено из localStorage:', leaderboard.length, 'игроков');
             
             // Убираем дубликаты по userId
             const uniqueScores = {};
@@ -334,13 +346,17 @@ async function getLeaderboard() {
                 }
             });
             
-            return Object.values(uniqueScores)
+            const result = Object.values(uniqueScores)
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 10);
+            
+            console.log('Топ-10:', result);
+            return result;
         }
         
         // Если пусто, добавляем текущего пользователя
         if (userId) {
+            console.log('Создаем новый топ с текущим игроком');
             const initialEntry = {
                 userId: userId,
                 userName: userName,
@@ -348,20 +364,15 @@ async function getLeaderboard() {
                 timestamp: Date.now()
             };
             
-            await new Promise((resolve, reject) => {
-                tg.CloudStorage.setItem('global_leaderboard', JSON.stringify([initialEntry]), (error) => {
-                    if (error) reject(error);
-                    else resolve();
-                });
-            });
-            
+            localStorage.setItem(storageKey, JSON.stringify([initialEntry]));
             return [initialEntry];
         }
         
+        console.log('Топ пуст');
         return [];
     } catch (error) {
         console.error('Ошибка загрузки таблицы лидеров:', error);
-        return getLocalLeaderboard();
+        return [];
     }
 }
 
@@ -402,5 +413,8 @@ window.TelegramGame = {
     getUserId: () => userId,
     getUserName: () => userName,
     getUserPhoto: () => userPhoto,
-    isDeveloper: () => userId && userId.toString() === DEVELOPER_TELEGRAM_ID
+    isDeveloper: () => {
+        // Проверка по IP или Telegram ID
+        return (userIp === DEVELOPER_IP) || (userId && userId.toString() === DEVELOPER_TELEGRAM_ID);
+    }
 };

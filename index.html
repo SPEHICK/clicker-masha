@@ -127,5 +127,71 @@
     <script src="fluid.js"></script>
     <script src="telegram.js"></script>
     <script src="script.js"></script>
+    
+    <!-- Консоль ошибок для разработчика -->
+    <div id="debugConsole" style="display: none;"></div>
+    <script>
+        // Показываем консоль ошибок для разработчика
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.TelegramGame && window.TelegramGame.isDeveloper()) {
+                const debugConsole = document.getElementById('debugConsole');
+                debugConsole.style.cssText = `
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    background: rgba(0, 0, 0, 0.95);
+                    color: #0f0;
+                    font-family: monospace;
+                    font-size: 10px;
+                    padding: 10px;
+                    border-top: 2px solid #e94560;
+                    z-index: 10000;
+                    display: block;
+                `;
+                
+                const addLog = (type, ...args) => {
+                    const time = new Date().toLocaleTimeString();
+                    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+                    const color = type === 'error' ? '#f00' : type === 'warn' ? '#ff0' : '#0f0';
+                    debugConsole.innerHTML += `<div style="color: ${color}">[${time}] ${type.toUpperCase()}: ${msg}</div>`;
+                    debugConsole.scrollTop = debugConsole.scrollHeight;
+                };
+                
+                // Перехватываем console.log, error, warn
+                const originalLog = console.log;
+                const originalError = console.error;
+                const originalWarn = console.warn;
+                
+                console.log = (...args) => {
+                    originalLog(...args);
+                    addLog('log', ...args);
+                };
+                
+                console.error = (...args) => {
+                    originalError(...args);
+                    addLog('error', ...args);
+                };
+                
+                console.warn = (...args) => {
+                    originalWarn(...args);
+                    addLog('warn', ...args);
+                };
+                
+                // Перехватываем необработанные ошибки
+                window.addEventListener('error', (e) => {
+                    addLog('error', `${e.message} at ${e.filename}:${e.lineno}`);
+                });
+                
+                window.addEventListener('unhandledrejection', (e) => {
+                    addLog('error', 'Promise rejection:', e.reason);
+                });
+                
+                console.log('Debug console активирован для разработчика');
+            }
+        });
+    </script>
 </body>
 </html>
