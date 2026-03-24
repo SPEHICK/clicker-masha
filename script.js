@@ -12,7 +12,7 @@ const skins = [
     { id: '3.jpg', name: 'Маша с рабом', cost: 5000, color: '#f39c12' },
     { id: '4.jpg', name: 'Маша съела человека', cost: 15000, color: '#3498db' },
     { id: '5.jpg', name: 'Маша Элджей', cost: 50000, color: '#e74c3c' },
-    { id: '6.jpg', name: 'Маша с бургером', cost: 150000, color: '#8e44ad' },
+    { id: '6.png', name: 'Маша с бургером', cost: 150000, color: '#8e44ad' },
     { id: '7.jpg', name: 'Беременная Маша', cost: 500000, color: '#ff1493' },
     { id: '8.jpg', name: 'Маша на тубзике', cost: 250000, color: '#00ff00' }
 ];
