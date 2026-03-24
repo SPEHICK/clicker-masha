@@ -8,11 +8,13 @@ let ownedSkins = ['1.bmp'];
 
 const skins = [
     { id: '1.bmp', name: 'Маша', cost: 0, owned: true, color: '#e94560' },
-    { id: '2.jpg', name: 'Маша Премиум', cost: 1000, color: '#9b59b6' },
-    { id: '3.jpg', name: 'Маша Золотая', cost: 5000, color: '#f39c12' },
-    { id: '4.jpg', name: 'Маша Алмазная', cost: 15000, color: '#3498db' },
-    { id: '5.jpg', name: 'Маша Легендарная', cost: 50000, color: '#e74c3c' },
-    { id: '6.png', name: 'Маша Мифическая', cost: 150000, color: '#8e44ad' }
+    { id: '2.jpg', name: 'Маша под солями', cost: 1000, color: '#9b59b6' },
+    { id: '3.jpg', name: 'Маша с рабом', cost: 5000, color: '#f39c12' },
+    { id: '4.jpg', name: 'Маша съела человека', cost: 15000, color: '#3498db' },
+    { id: '5.jpg', name: 'Маша Элджей', cost: 50000, color: '#e74c3c' },
+    { id: '6.jpg', name: 'Маша с бургером', cost: 150000, color: '#8e44ad' },
+    { id: '7.jpg', name: 'Беременная Маша', cost: 500000, color: '#ff1493' },
+    { id: '8.jpg', name: 'Маша на тубзике', cost: 250000, color: '#00ff00' }
 ];
 
 const scoreElement = document.getElementById('score');
